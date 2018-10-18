@@ -47,7 +47,7 @@ class Param:
         # λ = l1_reg
         diff = np.linalg.norm(self.Average_grads, ord=1) - self.l1_reg
         # l2_reg
-        self.l2_reg = -(1 * self.rate * diff * self.time) / (np.sqrt(G_grads))
+        self.l2_reg = -(self.step_func(np.linalg.det(self.Average_grads)) * self.rate * diff * self.time) / (np.sqrt(G_grads))
         for j in range(len(self.atom[self.key])):
             # Aの更新
             if diff <= 0:
@@ -56,22 +56,20 @@ class Param:
                 self.atom[self.key][j] = self.l2_reg
 
     # # AdagradUpdateWithL1RegNonNeg
-    # def AdagradUpdateWithL1RegNonNeg(self, grads):
-    #     for key in self.atom.keys():
-    #         # average gradient
-    #         Avegrads = grads / self.num_words
-    #         self.Totalgrads += np.linalg.norm(grads, ord=2)
-    #         # λ = l1_reg
-    #         diff = abs(Avegrads[key]) - self.l1_reg
-    #         # l2_reg
-    #         self.l2_reg = -(self.step_func(Avegrads[key]) * self.rate * diff * self.num_words) / (np.sqrt(self.Totalgrads))
-    #         # Aの更新
-    #         if diff <= 0:
-    #             self.atom[key] = 0
-    #         elif self.l2_reg < 0:
-    #             self.atom[key] = 0
-    #         else:
-    #             self.atom[key] = self.l2_reg
+    def AdagradUpdateWithL1RegNonNeg(self, grads):
+        G_grads = np.linalg.norm(self.Squared_Avegrads, ord=2)
+        # λ = l1_reg
+        diff = np.linalg.norm(self.Average_grads, ord=1) - self.l1_reg
+        # l2_reg
+        self.l2_reg = -(self.step_func(np.linalg.det(self.Average_grads)) * self.rate * diff * self.time) / (np.sqrt(G_grads))
+        for j in range(len(self.atom[self.key])):
+            # Aの更新
+            if diff <= 0:
+                self.atom[self.key][j] = 0
+            elif self.l2_reg < 0:
+                self.atom[self.key][j] = 0
+            else:
+                self.atom[self.key][j] = self.l2_reg
 
     def UpdateParams(self):
         # print(self.diff_vec.shape)  # (300,)
