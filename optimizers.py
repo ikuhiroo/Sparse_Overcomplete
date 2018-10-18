@@ -1,17 +1,6 @@
-#!/usr/local/bin python
-#! -*- coding: utf-8 -*-
-
 import theano
 from collections import OrderedDict
 from dnn.utils import *
-
-"""
-references: 
-https://gist.github.com/SnippyHolloW/67effa81dd1cd5a488b4
-https://gist.github.com/skaae/ae7225263ca8806868cb
-http://chainer.readthedocs.org/en/stable/reference/optimizers.html?highlight=optimizers
-http://qiita.com/skitaoka/items/e6afbe238cd69c899b2a
-"""
 
 
 class Optimizer(object):

@@ -30,32 +30,34 @@ import param
 
 """処理"""
 def main():
-    # コマンドライン引数の設定
+    """コマンドライン引数の設定"""
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", type=str, default=None, help="Input word vecs")
     parser.add_argument("-o", "--output", type=str, help="Output word vecs")
     parser.add_argument("-n", "--numiter", type=int, default=10, help="Num iterations")
     args = parser.parse_args()
 
-    # ハイパーパラメータ設定
-    wordVecs = util.ReadVecsFromFile(args.input)
-    outFileName = args.output
-    vocab = {} # D
-    numIter = int(args.numiter)
-    factor = 10 # Aの要素数 = factor * word2vecの要素数
-    l1_reg = 0.5 
-    l2_reg = 1e-5
+    """ベクトルの初期化"""
+    factor = 10  # Aの要素数 (= factor * word2vecの要素数)
+    wordVecs = util.ReadVecsFromFile(args.input) # (vec_len, vec_len)
+    newVecs = args.output # A : (factor * vec_len, vec_len)
+    vocab = {} # D : (vector_len, factor * vec_len)
     print("Input vector length : {}".format(len(wordVecs[0])))
     print("Output vector length : {}".format(factor * len(wordVecs[0])))
+
+    """ハイパーパラメータ設定"""
+    numIter = int(args.numiter) # trainのiter数
+    l1_reg = 0.5 # AのL1ノルムの正則化項
+    l2_reg = 1e-5 # DのL1ノルムの正則化項
+    print("num_iter : {}".format(numIter))
     print("L1 Reg (Atom) : {}".format(l1_reg))
     print("L2 Reg (Dict) : {}".format(l2_reg))
-    print("num_iter : {}".format(numIter))
 
-    # model
-    trainer = model(factor, len(wordVecs[0]), wordVecs.size)
+    """model"""
+    trainer = model.Model(factor, len(wordVecs[0]), len(wordVecs[0]))
 
-    # train
-    trainer.train(wordVecs, outFileName, numIter, l1_reg, l2_reg, factor, vocab)
+    """train"""
+    trainer.train(wordVecs, newVecs, numIter, l1_reg, l2_reg, factor, vocab)
 
 if __name__ == '__main__':
     main()
