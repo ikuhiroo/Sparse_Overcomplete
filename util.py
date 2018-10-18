@@ -1,4 +1,3 @@
-import argparse
 import gzip
 import math
 import numpy
@@ -8,33 +7,47 @@ import numpy as np
 from copy import deepcopy
 import codecs
 
-"""vectorsのread + normalize"""
-def ReadVecsFromFile(filename):
-    wordVectors = {}
-    # ファイル読み込み
-    if filename.endswith('.gz'):
-        fileObject = gzip.open(filename, 'r')
-    else:
-        fileObject = codecs.open(filename, "r", "utf-8", 'ignore')
+class Data:
+    def __init__(self):
+        pass
 
-    for line in fileObject:
-        # line = line.strip().lower()
-        line = line.strip()
-        word = line.split()[0]
-        wordVectors[word] = numpy.zeros(len(line.split())-1, dtype=float)
-        for index, vecVal in enumerate(line.split()[1:]):
-            wordVectors[word][index] = float(vecVal)
-        """normalize weight vector"""
-        wordVectors[word] /= math.sqrt((wordVectors[word]**2).sum() + 1e-6)
+    """vectorsのread + normalize"""
+    def ReadVecsFromFile(self, filename):
+        wordVectors = {}
+        # ファイル読み込み
+        if filename.endswith('.gz'):
+            fileObject = gzip.open(filename, 'r')
+        else:
+            fileObject = codecs.open(filename, "r", "utf-8", 'ignore')
 
-    sys.stderr.write("Vectors read from: "+filename+" \n")
-    return wordVectors
+        for line in fileObject:
+            # line = line.strip().lower()
+            line = line.strip()
+            word = line.split()[0]
+            wordVectors[word] = numpy.zeros(len(line.split())-1, dtype=float)
+            for index, vecVal in enumerate(line.split()[1:]):
+                wordVectors[word][index] = float(vecVal)
+            """normalize weight vector"""
+            wordVectors[word] /= math.sqrt((wordVectors[word]**2).sum() + 1e-6)
 
+        sys.stderr.write("Vectors read from: "+filename+" \n")
+        return wordVectors
 
-"""vector A の書き込み"""
-def WriteVectorsToFile():
-    pass
+    """AとDの作成"""
+    def CreateVecs(self, wordVecs, factor, vec_len):
+        keys = list(wordVecs.keys())
+        # A : (factor * vec_len, vec_len)
+        Atom = {}
+        for key in keys:
+            Atom[key] = np.random.rand(factor * vec_len)  # (3000, 1)
+        # D : (vec_len, factor * vec_len)
+        Dict = np.random.rand(vec_len, factor * vec_len)  # (300, 3000)
+        return Dict, Atom
 
-"""dict D の書き込み"""
-def WriteDictToFile():
-    pass
+    """vector A の書き込み"""
+    def WriteVectorsToFile(self):
+        pass
+
+    """dict D の書き込み"""
+    def WriteDictToFile(self):
+        pass

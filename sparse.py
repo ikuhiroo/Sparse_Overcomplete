@@ -39,11 +39,22 @@ def main():
 
     """ベクトルの初期化"""
     factor = 10  # Aの要素数 (= factor * word2vecの要素数)
-    wordVecs = util.ReadVecsFromFile(args.input) # (vec_len, vec_len)
-    newVecs = args.output # A : (factor * vec_len, vec_len)
-    vocab = {} # D : (vector_len, factor * vec_len)
-    print("Input vector length : {}".format(len(wordVecs[0])))
-    print("Output vector length : {}".format(factor * len(wordVecs[0])))
+    data = util.Data()
+    # wordVecsのread
+    wordVecs = data.ReadVecsFromFile(args.input)
+    vocab_len = len(wordVecs)
+    print("wordVecs vocab_len : {}".format(vocab_len))
+    for key in wordVecs.keys():
+        vec_len = len(wordVecs[key])
+        print("wordVecs per example : {}".format(vec_len))
+        break
+    # AとDの初期化
+    Dict, Atom = data.CreateVecs(wordVecs, factor, vec_len)
+    for key in Atom.keys():
+        print("A : {}".format(len(Atom[key])))
+        print("D : {}".format(Dict.shape))
+        print("DA : {}".format(np.dot(Dict, Atom[key]).shape))
+        break
 
     """ハイパーパラメータ設定"""
     numIter = int(args.numiter) # trainのiter数
@@ -54,10 +65,10 @@ def main():
     print("L2 Reg (Dict) : {}".format(l2_reg))
 
     """model"""
-    trainer = model.Model(factor, len(wordVecs[0]), len(wordVecs[0]))
+    trainer = model.Model(wordVecs, Dict, Atom, factor, vec_len, vocab_len)
 
     """train"""
-    trainer.train(wordVecs, newVecs, numIter, l1_reg, l2_reg, factor, vocab)
+    trainer.train(numIter, l1_reg, l2_reg)
 
 if __name__ == '__main__':
     main()
