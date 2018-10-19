@@ -28,10 +28,6 @@ class Param:
         self.sum_dict_grads = np.zeros((300, 3000))
         self.Squared_Avegrads = np.zeros((300, 3000))
 
-    # ステップ関数
-    def step_func(self, val):
-        return 1 if val > 0 else 0
-
     # AdagradUpdate : Aを固定してDを更新
     def AdagradUpdate(self, dict_grads):
         # hの初期化
@@ -47,7 +43,9 @@ class Param:
         # λ = l1_reg
         diff = np.linalg.norm(self.Average_grads, ord=1) - self.l1_reg
         # l2_reg
-        self.l2_reg = -(self.step_func(np.linalg.det(self.Average_grads)) * self.rate * diff * self.time) / (np.sqrt(G_grads))
+        # self.l2_reg = - (int(np.sign(self.Average_grads[j])) * self.rate *
+        #      diff * self.time) / (np.sqrt(G_grads))
+        self.l2_reg = - (1 * self.rate * diff * self.time) / (np.sqrt(G_grads))
         for j in range(len(self.atom[self.key])):
             # Aの更新
             if diff <= 0:
@@ -61,7 +59,7 @@ class Param:
         # λ = l1_reg
         diff = np.linalg.norm(self.Average_grads, ord=1) - self.l1_reg
         # l2_reg
-        self.l2_reg = -(self.step_func(np.linalg.det(self.Average_grads)) * self.rate * diff * self.time) / (np.sqrt(G_grads))
+        self.l2_reg = -(np.sign(self.atom[self.key][j]) * self.rate * diff * self.time) / (np.sqrt(G_grads))
         for j in range(len(self.atom[self.key])):
             # Aの更新
             if diff <= 0:
@@ -74,11 +72,11 @@ class Param:
     def UpdateParams(self):
         # print(self.diff_vec.shape)  # (300,)
         # print(self.atom[self.key].shape)  # (3000,)
-        # Dに関する勾配値 (Aは固定, (300, 3000)
+        # Dに関する勾配 (Aは固定, (300, 3000)
         dict_grads = (-2)*self.error*self.atom[self.key] + 2*self.l2_reg*self.dict
         # AdagradUpdate
         self.AdagradUpdate(dict_grads)
-        # Aに関する勾配値 (Dは固定), (300, 3000)
+        # A_iに関する勾配 (Dは固定), (300, 3000)
         atom_elem_grads = (-2)*self.error*self.dict + self.l1_reg
         """
         SAG (Stochastic Average Gradient)
