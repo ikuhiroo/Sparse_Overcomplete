@@ -45,8 +45,32 @@ class Data:
         return Dict, Atom
 
     """vector A の書き込み"""
-    def WriteVectorsToFile(self):
-        pass
+    def WriteVectorsToFile(self, newvec, outFileName):
+        """Write word vectors to file"""
+        sys.stderr.write('\nWriting down the vectors in '+outFileName+'\n')
+        outFile = open(outFileName, 'w')
+        for word, val in newvec.items():
+            outFile.write(word+' ')
+            for val in newvec[word]:
+                outFile.write('%.4f' % (val)+' ')
+            outFile.write('\n')
+        outFile.close()
+
+    """vector A の書き込み"""
+    def WriteVectorsToFile_non(self, newvec, outFileName):
+        """binary + Write word vectors to file"""
+        sys.stderr.write('\nWriting down the vectors in '+outFileName+'\n')
+        outFile = open(outFileName, 'w')
+        for word, val in newvec.items():
+            outFile.write(word+' ')
+            for val in newvec[word]:
+                if val > 0:
+                    val = 1
+                else:
+                    val = 0
+                outFile.write('%.4f' % (val)+' ')
+            outFile.write('\n')
+        outFile.close()
 
     """dict D の書き込み"""
     def WriteDictToFile(self):
