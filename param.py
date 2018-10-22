@@ -75,7 +75,7 @@ class Param:
         self.AdagradUpdate(dict_grads)
         """A[key]の更新 (Dは固定)"""
         # atom_elem_grads, (1, 3000)
-        atom_elem_grads = (-2) * np.dot(np.array([self.diff_vec]), self.dict) + self.l1_reg
+        atom_elem_grads = (-2) * np.dot(np.array([self.diff_vec]), self.dict)
         
         # timeごとのatom_elem_gradsの要素の和
         self.sum_atom_elem_grads += atom_elem_grads[0]
@@ -84,6 +84,6 @@ class Param:
         # timeごとのatom_elem_gradsの要素の二乗和
         self.square_atom_elem_grads += atom_elem_grads[0] * atom_elem_grads[0]
         # AdagradUpdateWithL1Reg
-        # self.AdagradUpdateWithL1Reg()
+        self.AdagradUpdateWithL1Reg()
         # Binarizing Transformation
-        self.AdagradUpdateWithL1RegNonNeg()
+        # self.AdagradUpdateWithL1RegNonNeg()

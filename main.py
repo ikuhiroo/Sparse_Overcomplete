@@ -14,8 +14,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", type=str, default=None, help="Input word vecs")
     parser.add_argument("-o", "--output", type=str, help="Output word vecs")
-    parser.add_argument("-n", "--numiter", type=int, default=2, help="Num iterations")
-    parser.add_argument("-l1", "--l1_reg", type=float, default=0.5, help="L1 Reg (Atom)")
+    parser.add_argument("-n", "--numiter", type=int, default=3, help="Num iterations")
+    parser.add_argument("-l1", "--l1_reg", type=float, default=1.0, help="L1 Reg (Atom)")
     parser.add_argument("-l2", "--l2_reg", type=float, default=1e-5, help="L2 Reg (Dict)")
     args = parser.parse_args()
 
@@ -55,9 +55,9 @@ def main():
 
     """save"""
     #  Non Binarizing Transformation
-    # data.WriteVectorsToFile(trainer.atom, str(args.output))
+    data.WriteVectorsToFile(trainer.atom, str(args.output))
     #  Binarizing Transformation
-    data.WriteVectorsToFile_non(trainer.atom, str(args.output))
+    # data.WriteVectorsToFile_non(trainer.atom, str(args.output))
 
 if __name__ == '__main__':
     main()
