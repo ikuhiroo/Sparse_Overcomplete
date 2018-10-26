@@ -1,6 +1,5 @@
 import gzip
 import math
-import numpy
 import re
 import sys
 import numpy as np
@@ -24,11 +23,12 @@ class Data:
             # line = line.strip().lower()
             line = line.strip()
             word = line.split()[0]
-            wordVectors[word] = numpy.zeros(len(line.split())-1, dtype=float)
+            wordVectors[word] = np.zeros(len(line.split())-1, dtype=float)  # (L,)
             for index, vecVal in enumerate(line.split()[1:]):
                 wordVectors[word][index] = float(vecVal)
             """normalize weight vector"""
-            wordVectors[word] /= math.sqrt((wordVectors[word]**2).sum() + 1e-6)
+            wordVectors[word] /= [math.sqrt((wordVectors[word]**2).sum() + 1e-6)]
+            wordVectors[word] = np.array([wordVectors[word]]) # (1, L)
 
         sys.stderr.write("Vectors read from: "+filename+" \n")
         return wordVectors
@@ -36,12 +36,14 @@ class Data:
     """AとDの作成"""
     def CreateVecs(self, wordVecs, factor, vec_len):
         keys = list(wordVecs.keys())
-        # A : (factor * vec_len, vec_len)
+        # A : (V, K), A[key] : (K,)
+        # 初期値の係数 : 0.6*(1/np.sqrt(vec_len*factor)
         Atom = {}
         for key in keys:
-            Atom[key] = np.random.rand(factor * vec_len)  # (3000, 1)
-        # D : (vec_len, factor * vec_len)
-        Dict = np.random.rand(vec_len, factor * vec_len)  # (300, 3000)
+            Atom[key] = (0.6*(1/np.sqrt(vec_len*factor))) * np.random.rand(1, factor*vec_len)
+        # D : (L, K)
+        # 初期値の係数 : 0.6*(1/np.sqrt(vec_len+vec_len*factor))
+        Dict = (0.6*(1/np.sqrt(vec_len+vec_len*factor))) * np.random.rand(vec_len, factor * vec_len)
         return Dict, Atom
 
     """vector A の書き込み"""
@@ -49,26 +51,26 @@ class Data:
         """Write word vectors to file"""
         sys.stderr.write('\nWriting down the vectors in '+outFileName+'\n')
         outFile = open(outFileName, 'w')
-        for word, val in newvec.items():
+        for word in newvec.keys():
             outFile.write(word+' ')
-            for val in newvec[word]:
+            for val in newvec[word][0]:
                 outFile.write('%.4f' % (val)+' ')
             outFile.write('\n')
         outFile.close()
 
-    """vector A の書き込み"""
+    """vector A non の書き込み"""
     def WriteVectorsToFile_non(self, newvec, outFileName):
         """binary + Write word vectors to file"""
         sys.stderr.write('\nWriting down the vectors in '+outFileName+'\n')
         outFile = open(outFileName, 'w')
-        for word, val in newvec.items():
+        for word in newvec.keys():
             outFile.write(word+' ')
-            for val in newvec[word]:
+            for val in newvec[word][0]:
                 if val > 0:
                     val = 1
                 else:
                     val = 0
-                outFile.write('%.4f' % (val)+' ')
+                outFile.write(str(val)+' ')
             outFile.write('\n')
         outFile.close()
 
