@@ -26,25 +26,12 @@ class Data:
             wordVectors[word] = np.zeros(len(line.split())-1, dtype=float)  # (L,)
             for index, vecVal in enumerate(line.split()[1:]):
                 wordVectors[word][index] = float(vecVal)
-            """normalize weight vector"""
-            wordVectors[word] /= [math.sqrt((wordVectors[word]**2).sum() + 1e-6)]
+            # """normalize weight vector"""
+            # wordVectors[word] /= [math.sqrt((wordVectors[word]**2).sum() + 1e-6)]
             wordVectors[word] = np.array([wordVectors[word]]) # (1, L)
 
         sys.stderr.write("Vectors read from: "+filename+" \n")
         return wordVectors
-
-    """AとDの作成"""
-    def CreateVecs(self, wordVecs, factor, vec_len):
-        keys = list(wordVecs.keys())
-        # A : (V, K), A[key] : (K,)
-        # 初期値の係数 : 0.6*(1/np.sqrt(vec_len*factor)
-        Atom = {}
-        for key in keys:
-            Atom[key] = (0.6*(1/np.sqrt(vec_len*factor))) * np.random.rand(1, factor*vec_len)
-        # D : (L, K)
-        # 初期値の係数 : 0.6*(1/np.sqrt(vec_len+vec_len*factor))
-        Dict = (0.6*(1/np.sqrt(vec_len+vec_len*factor))) * np.random.rand(vec_len, factor * vec_len)
-        return Dict, Atom
 
     """vector A の書き込み"""
     def WriteVectorsToFile(self, newvec, outFileName):
