@@ -20,16 +20,21 @@ class Data:
             fileObject = codecs.open(filename, "r", "utf-8", 'ignore')
 
         print('wordVecsのread中')
+        cnt = 0
         for line in fileObject:
-            # line = line.strip().lower()
-            line = line.strip()
-            word = line.split()[0]
-            wordVectors[word] = np.zeros(len(line.split())-1, dtype=float)  # (L,)
-            for index, vecVal in enumerate(line.split()[1:]):
-                wordVectors[word][index] = float(vecVal)
-            """normalize"""
-            # wordVectors[word] /= [math.sqrt((wordVectors[word]**2).sum() + 1e-6)]
-            wordVectors[word] = np.array([wordVectors[word]]) # (1, L)
+            if cnt == 0:
+                pass
+            else:
+                # line = line.strip().lower()
+                line = line.strip()
+                word = line.split()[0]
+                wordVectors[word] = np.zeros(len(line.split())-1, dtype=float)  # (L,)
+                for index, vecVal in enumerate(line.split()[1:]):
+                    wordVectors[word][index] = float(vecVal)
+                """normalize"""
+                # wordVectors[word] /= [math.sqrt((wordVectors[word]**2).sum() + 1e-6)]
+                wordVectors[word] = np.array([wordVectors[word]]) # (1, L)
+            cnt += 1
         print('wordVecsのread完了')
         sys.stderr.write("Vectors read from: "+filename+" \n")
         return wordVectors

@@ -26,11 +26,11 @@ class Model:
         keys = list(wordVecs.keys()) 
         self.atom = {}
         for key in keys:
-            # self.atom[key] = (0.6*(1/np.sqrt(factor*vec_len))) * np.random.randn(1, factor*vec_len)
-            self.atom[key] = (0.6*(1/np.sqrt(factor*vec_len))) * np.ones((1, factor*vec_len))
+            self.atom[key] = (0.6*(1/np.sqrt(factor*vec_len))) * np.random.randn(1, factor*vec_len)
+            # self.atom[key] = (0.6*(1/np.sqrt(factor*vec_len))) * np.ones((1, factor*vec_len))
         
-        # self.dict = (0.6*(1/np.sqrt(self.vec_len + factor*vec_len))) * np.random.randn(vec_len, factor * vec_len)
-        self.dict = (0.6*(1/np.sqrt(self.vec_len + factor*vec_len))) * np.ones((vec_len, factor * vec_len))
+        self.dict = (0.6*(1/np.sqrt(self.vec_len + factor*vec_len))) * np.random.randn(vec_len, factor * vec_len)
+        # self.dict = (0.6*(1/np.sqrt(self.vec_len + factor*vec_len))) * np.ones((vec_len, factor * vec_len))
 
     """Dとa_iの内積を計算する
     # word2vec[key] : (1, L)

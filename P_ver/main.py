@@ -14,15 +14,15 @@ def main():
 
     $ python main.py -i ../sample/sample_vecs_1.txt -o ./newvec_py.txt
     """
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--input", type=str, default=None, help="Input word vecs")
-    parser.add_argument("-o", "--output", type=str, help="Output word vecs")
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument("-i", "--input", type=str, default=None, help="Input word vecs")
+    # parser.add_argument("-o", "--output", type=str, help="Output word vecs")
+    # args = parser.parse_args()
 
     """init_vecの読み込み"""
     data = util.Data()
     # wordVecsのread
-    wordVecs = data.ReadVecsFromFile(args.input)
+    wordVecs = data.ReadVecsFromFile("../word2vec/vectors.model")
     # word2vecのkey数
     vocab_len = len(list(wordVecs.keys()))
     # print("wordVecs vocab_len : {}".format(vocab_len))
@@ -32,6 +32,7 @@ def main():
         break
 
     print("\n----------------")
+    print("word_num: {}".format(len(wordVecs.keys())))
     print("Input vector length: {}".format(vec_len))
     print("Output vector length:: {}".format(vec_len * factor))
     print("L2 Reg(Dict): {}".format(l2_reg))
@@ -44,12 +45,13 @@ def main():
     trainer.Sparse_Overfitting()
 
     """save"""
+    output = './newvec.model'
     #  Non Binarizing Transformation
-    data.WriteVectorsToFile(trainer.atom, str(args.output))
+    data.WriteVectorsToFile(trainer.atom, str(output))
     #  Binarizing Transformation
-    data.WriteVectorsToFile_non(trainer.atom, str(args.output + '_non'))
+    data.WriteVectorsToFile_non(trainer.atom, str(output + '_non'))
     # dict
-    data.WriteDictToFile(trainer.dict, str(args.output+'_dict'))
+    data.WriteDictToFile(trainer.dict, str(output+'_dict'))
 
 if __name__ == '__main__':
     main()
