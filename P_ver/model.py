@@ -3,6 +3,7 @@ import math
 import re
 import sys
 import numpy as np
+import util
 
 import param
 from hyperparameter import numIter, l1_reg, l2_reg, factor, rate
@@ -43,6 +44,7 @@ class Model:
 
     """Sparse_Overfitting (adaptiveな処理)"""
     def Sparse_Overfitting(self):
+        data = util.Data()
         Optimizer = param.Param(self.atom, self.dict, self.vocab_len, self.vec_len)
         # 指定のnumIter回以下の処理を繰り返す
         for time in range(1, numIter):
@@ -83,4 +85,13 @@ class Model:
             # Dは更新前
             print("Dict L2 norm : {}".format(np.linalg.norm(self.dict, ord=2)))
             print("Avg Atom L1 norm : {}\n".format(atom_l1_norm/num_words))
+
+            """save"""
+            output = './newvec_{}.model'.format(time)
+            #  Non Binarizing Transformation
+            data.WriteVectorsToFile(self.atom, str(output))
+            #  Binarizing Transformation
+            data.WriteVectorsToFile_non(self.atom, str(output + '_non'))
+            # dict
+            data.WriteDictToFile(self.dict, str(output+'_dict'))
 
