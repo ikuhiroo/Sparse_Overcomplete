@@ -19,6 +19,7 @@ class Data:
         else:
             fileObject = codecs.open(filename, "r", "utf-8", 'ignore')
 
+        print('wordVecsのread中')
         for line in fileObject:
             # line = line.strip().lower()
             line = line.strip()
@@ -26,10 +27,10 @@ class Data:
             wordVectors[word] = np.zeros(len(line.split())-1, dtype=float)  # (L,)
             for index, vecVal in enumerate(line.split()[1:]):
                 wordVectors[word][index] = float(vecVal)
-            # """normalize weight vector"""
+            """normalize"""
             # wordVectors[word] /= [math.sqrt((wordVectors[word]**2).sum() + 1e-6)]
             wordVectors[word] = np.array([wordVectors[word]]) # (1, L)
-
+        print('wordVecsのread完了')
         sys.stderr.write("Vectors read from: "+filename+" \n")
         return wordVectors
 
@@ -41,7 +42,7 @@ class Data:
         for word in newvec.keys():
             outFile.write(word+' ')
             for val in newvec[word][0]:
-                outFile.write('%.4f' % (val)+' ')
+                outFile.write('%.3f' % (val)+' ')
             outFile.write('\n')
         outFile.close()
 
@@ -62,5 +63,12 @@ class Data:
         outFile.close()
 
     """dict D の書き込み"""
-    def WriteDictToFile(self):
-        pass
+    def WriteDictToFile(self, dic, outFileName):
+        print(dic.shape)
+        """Write dict to file"""
+        sys.stderr.write('\nWriting down the vectors in '+outFileName+'\n')
+        outFile = open(outFileName, 'w')
+        for i in range(len(dic)):
+            for j in range(len(dic[i])):
+                outFile.write(str(dic[i][j])+' ')
+        outFile.close()

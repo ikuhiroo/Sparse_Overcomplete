@@ -11,12 +11,21 @@
 #include <Eigen/Core>
 #include <random>
 #include <stdio.h>
-
 #include "utils.h"
 
 #define RHO 0.95
 #define EPSILON 0.000001
 #define RATE 0.05
+
+// 実行コマンド
+// For sparse coding : make
+// For non - negative sparse coding : make nonneg
+// ## #Running the executable
+// For sparse coding : sparse.o
+// For non - negative sparse coding : nonneg.o
+// Usage :./sparse.o vec_corpus factor l1_reg l2_reg num_cores outfilename
+// Example :./sparse.o sample_vecs.txt 10 0.5 1e-5 1 out_vecs.txt
+// This example would expand the vectors in sample_vecs.txt to 10 times their original length.
 
 using namespace std;
 using namespace Eigen;
@@ -65,17 +74,30 @@ class Param {
     // printf("%d\n", grad.cols()); // 1
     // printf("\n");
     _update_num += 1;
+    // cerr << '\n'
+    //      << grad
+    //      << '\n';
     _del_grad += grad.cwiseAbs2();
     _grad_sum += grad;
-    for (int i = 0; i < var.rows(); ++i) { // 3000 : K
-      for (int j = 0; j < var.cols(); ++j) { // 1
+    // cerr << '\n'
+    //      << _del_grad
+    //      << '\n';
+    double diff_pre;
+    double gamma;
+    for (int i = 0; i < var.rows(); ++i){    // 3000 : K
+      for (int j = 0; j < var.cols(); ++j) { // 1 : 1
         double diff = abs(_grad_sum(i, j)) - _update_num * l1_reg;
-        if (diff <= 0)
+        diff_pre = diff;
+        gamma = -sgn(_grad_sum(i, j)) * rate * diff / sqrt(_del_grad(i, j));
+        if (diff <= 0) 
           var(i, j) = 0;
         else
-          var(i, j) = -sgn(_grad_sum(i, j)) * rate * diff / sqrt(_del_grad(i, j));
+          var(i, j) = gamma;
       }
     }
+    // cerr << '\n'
+    //      << diff_pre
+    //      << '\n';
   }
 
   void AdagradUpdateWithL1RegNonNeg(const double& rate, const T& grad,
@@ -162,8 +184,11 @@ class Model {
     // printf("%d\n", diff_vec.rows());             // 300 : L
     // printf("%d\n", diff_vec.cols());             // 1
     // printf("\n");
-    // Col atom_elem_grad = -2 * dict.var.transpose() * diff_vec;
-    // atom[word_index].AdagradUpdateWithL1Reg(rate, atom_elem_grad, l1_reg);
+    Col atom_elem_grad = -2 * dict.var.transpose() * diff_vec;
+    // cerr << '\n'
+    //      << 
+    //      << '\n';
+    atom[word_index].AdagradUpdateWithL1Reg(rate, atom_elem_grad, l1_reg);
   }
 
   void WriteVectorsToFile(const string& filename,
@@ -205,7 +230,7 @@ void Train(const string& out_file, const int& factor,
   Model model(factor, word_vecs[0].size(), word_vecs.size());
   double avg_error = 1, prev_avg_err = 0;
   int iter = 0;
-  while (iter < 10 || (avg_error > 0.05 && iter < 50 && abs(avg_error - prev_avg_err) > 0.005)) {
+  while (iter < 2 && (avg_error > 0.05 && iter < 50 && abs(avg_error - prev_avg_err) > 0.005)) {
     iter += 1;
     cerr << "\nIteration: " << iter << endl;
     unsigned num_words = 0;
@@ -218,22 +243,37 @@ void Train(const string& out_file, const int& factor,
       Col pred_vec;
       model.PredictVector(word_vecs[word_id], word_id, &pred_vec);
       Col diff_vec = word_vecs[word_id] - pred_vec;
+      // cerr << "\n"
+      //      << pred_vec;
       double error = diff_vec.squaredNorm();
       #pragma omp critical
       {
         total_error += error;
         num_words += 1;
-        atom_l1_norm += model.atom[word_id].var.lpNorm<1>();
-        cerr << num_words << "\r";
+        // atom_l1_norm += model.atom[word_id].var.lpNorm<1>();
+        cerr << "num_words: " << num_words << "\r";
       }
+      // cerr << "\n error_ "
+      //      << num_words
+      //      << ": "
+      //      << error;
       model.UpdateParams(word_id, RATE, diff_vec, l1_reg, l2_reg);
+      
+      atom_l1_norm += model.atom[word_id].var.lpNorm<1>();
+
+      // prev_avg_err = avg_error;
+      // avg_error = total_error / num_words;
+      // cerr << "\nError per example: " << total_error / num_words;
+      // cerr << "\nDict L2 norm: " << model.dict.var.lpNorm<2>();
+      // cerr << "\nAvg Atom L1 norm: " << atom_l1_norm / num_words << "\n";
+      //model.WriteVectorsToFile(out_file, vocab);
     }
     prev_avg_err = avg_error;
     avg_error = total_error / num_words;
     cerr << "\nError per example: "<< total_error / num_words;
     cerr << "\nDict L2 norm: " << model.dict.var.lpNorm<2>();
     cerr << "\nAvg Atom L1 norm: " << atom_l1_norm / num_words << "\n";
-    //model.WriteVectorsToFile(out_file, vocab);
+    model.WriteVectorsToFile(out_file, vocab);
   }
   model.WriteVectorsToFile(out_file, vocab);
   model.WriteDictToFile(out_file + "_dict");

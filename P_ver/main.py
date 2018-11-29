@@ -10,7 +10,9 @@ from hyperparameter import numIter, l1_reg, l2_reg, factor, rate
 
 def main():
     """コマンドライン引数の設定
-    $ python main.py -i ./sample/sample_vecs.txt -o ./newvec.txt
+    $ python main.py -i ../sample/sample_vecs.txt -o ./newvec.txt
+
+    $ python main.py -i ../sample/sample_vecs_1.txt -o ./newvec_py.txt
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", type=str, default=None, help="Input word vecs")
@@ -29,6 +31,13 @@ def main():
         vec_len = len(wordVecs[key][0])
         break
 
+    print("\n----------------")
+    print("Input vector length: {}".format(vec_len))
+    print("Output vector length:: {}".format(vec_len * factor))
+    print("L2 Reg(Dict): {}".format(l2_reg))
+    print("L1 Reg(Atom): {}".format(l1_reg))
+    print("----------------\n")
+
     """model"""    
     trainer = model.Model(wordVecs, vocab_len, vec_len)
     """train"""
@@ -38,7 +47,9 @@ def main():
     #  Non Binarizing Transformation
     data.WriteVectorsToFile(trainer.atom, str(args.output))
     #  Binarizing Transformation
-    # data.WriteVectorsToFile_non(trainer.atom, str(args.output))
+    data.WriteVectorsToFile_non(trainer.atom, str(args.output + '_non'))
+    # dict
+    data.WriteDictToFile(trainer.dict, str(args.output+'_dict'))
 
 if __name__ == '__main__':
     main()

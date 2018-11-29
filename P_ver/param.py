@@ -6,16 +6,30 @@ import sys
 from hyperparameter import numIter, l1_reg, l2_reg, factor, rate
 
 class Param:
+    """
+    以下はクラス変数（全ての単語で共通）である．
+    ・_del_grad_D
+    ・_grad_sum_D
+    以下はインスタンス変数（単語ごとに異なる）である．
+    ・_del_grad_A
+    ・_grad_sum_A
+    """
     def __init__(self, Atom, Dict, vocab_len, vec_len):
         self.atom = Atom  # (L, V)
         self.dict = Dict  # (L, K)
         self.vocab_len = vocab_len  # V
         self.vec_len = vec_len   # L
 
+        # 全単語で共通
         self._del_grad_D = np.zeros((vec_len, vec_len*factor))  # (L, K)
         self._grad_sum_D = np.zeros((vec_len, vec_len*factor))  # (L, K)
-        self._del_grad_A = np.zeros(vec_len*factor)  # (K,)
-        self._grad_sum_A = np.zeros(vec_len*factor)  # (K,)
+
+        # 単語ごと作成
+        self._del_grad_A = {}
+        self._grad_sum_A = {}
+        for key in self.atom.keys():
+            self._del_grad_A[key] = np.zeros(vec_len*factor)  # (K,)
+            self._grad_sum_A[key] = np.zeros(vec_len*factor)  # (K,)
 
     # AdagradUpdate : Aを固定してDを更新
     def AdagradUpdate(self, grads):
@@ -34,13 +48,15 @@ class Param:
     def AdagradUpdateWithL1Reg(self, time, key, grads):
         #  grads: (1, K)
         # _del_grad_A : (K,)
-        self._del_grad_A += np.power(grads[0], 2)
+        """単語単位で_del_grad_Aや_grad_sum_Aを持たせる"""
+        self._del_grad_A[key] += np.power(grads[0], 2)
         # _grad_sum_A : (K,)
-        self._grad_sum_A += grads[0]
+        self._grad_sum_A[key] += grads[0]
         # A[key]の更新
-        for j in range(factor*self.vec_len):# K
-            diff = abs(self._grad_sum_A[j]) - l1_reg*time
-            gamma = -(np.sign(self._grad_sum_A[j]) * rate * diff) / (np.sqrt(self._del_grad_A[j]))
+        for j in range(factor*self.vec_len):  # K
+            diff = abs(self._grad_sum_A[key][j]) - l1_reg*time
+            gamma = - (np.sign(self._grad_sum_A[key][j]) *
+                       rate * diff) / (np.sqrt(self._del_grad_A[key][j]))
             # A[key][j]の更新
             if diff <= 0:
                 self.atom[key][0][j] = 0
@@ -51,12 +67,13 @@ class Param:
     def AdagradUpdateWithL1RegNonNeg(self, time, key, grads):
         #  grads: (1, K)
         # _del_grad_A : (K,)
-        self._del_grad_A += np.power(grads[0], 2)
+        self._del_grad_A[key] += np.power(grads[0], 2)
         # _grad_sum_A : (K,)
-        self._grad_sum_A += grads[0]
+        self._grad_sum_A[key] += grads[0]
         for j in range(factor * self.vec_len):  # K
-            diff = abs(self._grad_sum_A[j]) - l1_reg * time
-            gamma = -((np.sign(self._grad_sum_A[j]) * rate * diff) / (np.sqrt(self._del_grad_A[j])))
+            diff = abs(self._grad_sum_A[key][j]) - l1_reg*time
+            gamma = - ((np.sign(self._grad_sum_A[key][j]) * rate *
+                        diff) / (np.sqrt(self._del_grad_A[key][j])))
             # Aの更新
             if diff <= 0:
                 self.atom[key][0][j] = 0
@@ -81,8 +98,9 @@ class Param:
         # diff_vec : (1, L)
         # dict : (L, K)
         # atom_elem_grads, (1, K)
-        # atom_elem_grads = (-2)*np.dot(diff_vec, self.dict)
+        """iter2の2つ目の単語のdiff_vecまでは同じ"""
+        atom_elem_grads = (-2)*np.dot(diff_vec, self.dict)
         # AdagradUpdateWithL1Reg
         # self.AdagradUpdateWithL1Reg(time, key, atom_elem_grads)
         # Binarizing Transformation
-        # self.AdagradUpdateWithL1RegNonNeg(time, key, atom_elem_grads)
+        self.AdagradUpdateWithL1RegNonNeg(time, key, atom_elem_grads)
