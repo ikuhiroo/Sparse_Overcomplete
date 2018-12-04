@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "main.py", line 61, in <module>
+  File "/Users/1-10robotics/.pyenv/versions/3.6.0/lib/python3.6/site-packages/memory_profiler.py", line 1076, in wrapper
+    val = prof(func)(*args, **kwargs)
+  File "/Users/1-10robotics/.pyenv/versions/3.6.0/lib/python3.6/site-packages/memory_profiler.py", line 662, in f
+    return func(*args, **kwds)
+  File "main.py", line 29, in main
+    for key in wordVecs.keys():
+  File "/Users/1-10robotics/Desktop/Sparse_Overcomplete/P_ver/util.py", line 32, in ReadVecsFromFile
+    for index, vecVal in enumerate(line.split()[1:]):
+  File "/Users/1-10robotics/Desktop/Sparse_Overcomplete/P_ver/util.py", line 32, in ReadVecsFromFile
+    for index, vecVal in enumerate(line.split()[1:]):
+  File "/Users/1-10robotics/.pyenv/versions/3.6.0/lib/python3.6/site-packages/memory_profiler.py", line 696, in trace_memory_usage
+    if frame.f_code in self.code_map:
+KeyboardInterrupt

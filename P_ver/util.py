@@ -6,38 +6,76 @@ import numpy as np
 from copy import deepcopy
 import codecs
 
+from memory_profiler import profile
+import gc
+
 class Data:
     def __init__(self):
         pass
 
+    """ファイルの中身を１行ずつ返すジェネレーター"""
+    def file_generator(self, filename):
+        cnt = 0
+        with open(filename, encoding="utf-8") as infile:
+            for line in infile:
+                cnt += 1
+                if cnt == 1:
+                    pass
+                else:
+                    yield line
+
     """vectorsのread + normalize"""
     def ReadVecsFromFile(self, filename):
-        wordVectors = {}
-        # ファイル読み込み
-        if filename.endswith('.gz'):
-            fileObject = gzip.open(filename, 'r')
-        else:
-            fileObject = codecs.open(filename, "r", "utf-8", 'ignore')
-
-        print('wordVecsのread中')
-        cnt = 0
-        for line in fileObject:
-            if cnt == 0:
-                pass
-            else:
-                # line = line.strip().lower()
-                line = line.strip()
-                word = line.split()[0]
-                wordVectors[word] = np.zeros(len(line.split())-1, dtype=float)  # (L,)
-                for index, vecVal in enumerate(line.split()[1:]):
-                    wordVectors[word][index] = float(vecVal)
-                """normalize"""
-                # wordVectors[word] /= [math.sqrt((wordVectors[word]**2).sum() + 1e-6)]
-                wordVectors[word] = np.array([wordVectors[word]]) # (1, L)
-            cnt += 1
-        print('wordVecsのread完了')
         sys.stderr.write("Vectors read from: "+filename+" \n")
+        print('wordVecsのread中')
+        wordVectors = {}
+        # 以下，yierdによる処理
+        gen = self.file_generator(filename)
+        for line in gen:
+            line = line.strip()
+            word = line.split()[0]
+            wordVectors[word] = np.zeros(len(line.split())-1, dtype=np.float32)  # (L,)
+            for index, vecVal in enumerate(line.split()[1:]):
+                wordVectors[word][index] = float(vecVal)
+            del index, vecVal
+            """normalize"""
+            # wordVectors[word] /= [math.sqrt((wordVectors[word]**2).sum() + 1e-6)]
+            wordVectors[word] = np.array([wordVectors[word]], dtype=np.float32)  # (1, L)
+        print('wordVecsのread完了')
         return wordVectors
+
+    # """vectorsのread + normalize"""
+    # # @profile
+    # def ReadVecsFromFile(self, filename):
+    #     wordVectors = {}
+    #     # ファイル読み込み
+    #     if filename.endswith('.gz'):
+    #         infile = gzip.open(filename, 'r')
+    #     else:
+    #         infile = codecs.open(filename, "r", "utf-8", 'ignore')
+
+    #     print('wordVecsのread中')
+    #     cnt = 0
+    #     for line in infile:
+    #         if cnt == 0:
+    #             pass
+    #         else:
+    #             line = line.strip()
+    #             word = line.split()[0]
+    #             wordVectors[word] = np.zeros(len(line.split())-1, dtype=np.float32)  # (L,)
+    #             for index, vecVal in enumerate(line.split()[1:]):
+    #                 wordVectors[word][index] = float(vecVal)
+    #             del index, vecVal
+    #             """normalize"""
+    #             # wordVectors[word] /= [math.sqrt((wordVectors[word]**2).sum() + 1e-6)]
+    #             wordVectors[word] = np.array([wordVectors[word]], dtype=np.float32) # (1, L)
+    #         cnt += 1
+    #     del line, cnt
+    #     gc.collect()
+    #     print('wordVecsのread完了')
+    #     sys.stderr.write("Vectors read from: "+filename+" \n")
+    #     infile.close()
+    #     return wordVectors
 
     """vector A の書き込み"""
     def WriteVectorsToFile(self, newvec, outFileName):
@@ -49,6 +87,8 @@ class Data:
             for val in newvec[word][0]:
                 outFile.write('%.3f' % (val)+' ')
             outFile.write('\n')
+        del word, val
+        gc.collect()
         outFile.close()
 
     """vector A non の書き込み"""
@@ -65,6 +105,8 @@ class Data:
                     val = 0
                 outFile.write(str(val)+' ')
             outFile.write('\n')
+        del word, val
+        gc.collect()
         outFile.close()
 
     """dict D の書き込み"""
@@ -76,4 +118,6 @@ class Data:
         for i in range(len(dic)):
             for j in range(len(dic[i])):
                 outFile.write(str(dic[i][j])+' ')
+        del i, j
+        gc.collect()
         outFile.close()
