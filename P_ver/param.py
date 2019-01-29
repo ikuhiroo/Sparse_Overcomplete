@@ -4,7 +4,6 @@ import re
 import sys
 
 from hyperparameter import numIter, l1_reg, l2_reg, factor, rate
-
 from memory_profiler import profile
 import gc
 
@@ -19,7 +18,7 @@ class Param:
     """
     def __init__(self, Atom, Dict, vocab_len, vec_len):
         self.atom = Atom  # (L, V)
-        self.dict = Dict  # (L, K)
+        self.Dict = Dict  # (L, K)
         # self.vocab_len = vocab_len  # V
         # self.vec_len = vec_len   # L
 
@@ -28,10 +27,6 @@ class Param:
         self._grad_sum_D = np.zeros((vec_len, vec_len*factor), dtype=np.float32)  # (L, K)
 
         # 単語ごと作成
-        """メモリを食っている原因
-        １つの単語が(300, 3000)のオブジェクトをもつ
-        しかも，単語数が754069個
-        """
         self._del_grad_A = {}
         self._grad_sum_A = {}
         for key in self.atom.keys():
@@ -39,7 +34,6 @@ class Param:
             self._grad_sum_A[key] = np.zeros(vec_len*factor, dtype=np.float32)  # (K,)
 
     # AdagradUpdate : Aを固定してDを更新
-    # @profile
     def AdagradUpdate(self, grads):
         # hとDの更新
         # grads : (L, K)
@@ -50,10 +44,9 @@ class Param:
         # cwiseQuotient : (L, K)
         cwiseQuotient = grads / (np.sqrt(self._del_grad_D, dtype=np.float32) + 1e-7)
         # dict : (L, K)
-        self.dict -= rate * cwiseQuotient
+        self.Dict -= rate * cwiseQuotient
 
     # AdagradUpdateWithL1Reg : Dを固定してAを更新
-    # @profile
     def AdagradUpdateWithL1Reg(self, time, key, grads, vec_len):
         #  grads: (1, K)
         # _del_grad_A : (K,)
@@ -93,14 +86,13 @@ class Param:
                     self.atom[key][0][j] = gamma
     
     """パラメータの更新"""
-    # @profile
     def UpdateParams(self, time, key, diff_vec, vec_len):
         """Dの更新 (A[key]は固定)"""
         # diff_vec : (1, L)
         # atom[self.key] : (1, K)
         # dict : (L, K)
         # dict_grads : (L, K)
-        dict_elem_grads = (-2)*np.dot(diff_vec.T, self.atom[key]) + 2*l2_reg*self.dict
+        dict_elem_grads = (-2)*np.dot(diff_vec.T, self.atom[key]) + 2*l2_reg*self.Dict
         # AdagradUpdate
         self.AdagradUpdate(dict_elem_grads)
         """A[key]の更新 (Dは固定)"""
@@ -109,7 +101,7 @@ class Param:
         # dict : (L, K)
         # atom_elem_grads, (1, K)
         """iter2の2つ目の単語のdiff_vecまでは同じ"""
-        atom_elem_grads = (-2)*np.dot(diff_vec, self.dict).astype(np.float32)
+        atom_elem_grads = (-2)*np.dot(diff_vec, self.Dict).astype(np.float32)
         # AdagradUpdateWithL1Reg
         self.AdagradUpdateWithL1Reg(time, key, atom_elem_grads, vec_len)
         # Binarizing Transformation

@@ -12,6 +12,18 @@ from hyperparameter import numIter, l1_reg, l2_reg, factor, rate
 from memory_profiler import profile
 import gc
 
+import argparse
+import sys
+import numpy as np
+
+import util
+import model
+import param
+from hyperparameter import numIter, l1_reg, l2_reg, factor, rate
+
+from memory_profiler import profile
+import gc
+
 class Model:
     """パラメータ初期化"""
     # @profile
@@ -20,22 +32,25 @@ class Model:
         # self.vocab_len = vocab_len  # V
         # self.vec_len = vec_len  # L
 
-        """AとDの作成
+        """AとDの初期化
         # A : (V, K), A[key] : (K,)
         # 初期値の係数 : 0.6*(1/np.sqrt(vec_len*factor)
+        # メモリ計算式：単語数 * SOVのvecの次元数 * 0.000002[MB]
         
         # D : (L, K)
         # 初期値の係数 : 0.6*(1/np.sqrt(vec_len+vec_len*factor))
+        # メモリ計算式：初期vecの次元数 * SOVのvecの次元数 * 0.000002[MB]
         """
         keys = list(wordVecs.keys()) 
         self.atom = {}
-        # 3.6MiB増える -> 3.6MBで一致
+        # 3.6MB (32bit, factor=10)増える
         for key in keys:
-            self.atom[key] = 0.6*(1/np.sqrt(factor*vec_len, dtype=np.float32)) * \
-                np.random.randn(1, factor*vec_len).astype(np.float32)
+            self.atom[key] = 0.6*(1/np.sqrt(factor*vec_len, dtype=np.float16)) * \
+                np.random.randn(1, factor*vec_len).astype(np.float16)
         
-        """14.4 MiB増える -> 3000 * 300 * 4B = 3600,000B = 3.6MB"""
-        self.dict = (0.6*(1/np.sqrt(vec_len + factor*vec_len))*np.random.randn(vec_len, factor*vec_len)).astype(np.float32)
+        # 3.6MB (32bit, factor=10)増える
+        self.dict = (0.6*(1/np.sqrt(vec_len + factor*vec_len))*np.random.randn(vec_len, factor*vec_len)).astype(np.float16)
+        # メモリ再利用
         del keys, wordVecs, vocab_len, vec_len
         gc.collect()
 
@@ -48,17 +63,33 @@ class Model:
     def PredictVector(self, key):
         return np.dot(self.atom[key], self.dict.T).astype(np.float32)
 
-    """Sparse_Overfitting (adaptiveな処理)"""
+    """Sparse_Overfitting (adaptiveな処理)
+    ・Dataインスタンス(data)生成
+    ・paramインスタンス (Optimizer) 生成
+        self.atom = Atom  # (L, V)
+        -> メモリ計算式：初期vecの次元数 * SOVのvecの次元数 * 0.000002[MB]
+        self.dict = Dict  # (L, K)
+        -> メモリ計算式：初期vecの次元数 * SOVのvecの次元数 * 0.000002[MB]
+    
+        self._del_grad_D  # (L, K)
+        -> メモリ計算式：初期vecの次元数 * SOVのvecの次元数 * 0.000002[MB]
+        self._grad_sum_D  # (L, K)
+        -> メモリ計算式：初期vecの次元数 * SOVのvecの次元数 * 0.000002[MB]
+        self._del_grad_A[key] # (K,)
+        -> メモリ計算式：単語数 * SOVのvecの次元数 * 0.000002[MB]
+        self._grad_sum_A[key] # (K,)
+        -> メモリ計算式：単語数 * SOVのvecの次元数 * 0.000002[MB]
+    """
     @profile
     def Sparse_Overfitting(self, wordVecs, vocab_len, vec_len):
+        # mainとmodelは分ける必要があるのか
         data = util.Data()
-        # 7.0 MiB増える -> 3.6MB + 3.6MB = 7.2MBで一致
+        # 
         Optimizer = param.Param(self.atom, self.dict, vocab_len, vec_len)
         for time in range(1, numIter):
             num_words = 0 # 更新単語数
-            total_error = np.array(0, dtype=np.float32)  # 総ロス
-            atom_l1_norm = np.array(0, dtype=np.float32) # Aに関するノルム値
-            print("Iteration : {}".format(time))
+            total_error = np.array(0, dtype=np.float16)  # 総ロス
+            atom_l1_norm = np.array(0, dtype=np.float16) # Aに関するノルム値
             # adaptiveな手続き, A[key]を対象
             for key in wordVecs.keys():
                 """error算出"""
@@ -66,6 +97,7 @@ class Model:
                 pred_vec = self.PredictVector(key)
                 # true_vec - pred_vecの復元誤差, (1, L)
                 diff_vec = wordVecs[key] - pred_vec
+                # メモリの再利用
                 del pred_vec
                 gc.collect()
 
@@ -75,24 +107,18 @@ class Model:
 
                 atom[key].UpdateParams(time, diff_vec)
                 """
-                # 17.3 MiB増える -> 
                 Optimizer.UpdateParams(time, key, diff_vec, vec_len)
                 self.atom = Optimizer.atom
                 self.dict = Optimizer.dict
                 
                 num_words += 1  # 更新単語数
-                # error = (diff_vec**2).sum()  # 4.435537832891
-                # error = np.sum(diff_vec**2, dtype=np.float32)  # 4.4052725
-                error = np.sum(np.square(diff_vec), dtype=np.float32)  # 4.4492593
+                error = np.sum(np.square(diff_vec), dtype=np.float16)
                 total_error += error
+                # メモリの再利用
                 del error
                 gc.collect()
-                # atom_l1_norm += (self.atom[key][0]).sum() # -1.6117806434631348
-                # -1.6117806434631348
                 atom_l1_norm += np.sum(self.atom[key][0])
-                # # Aは更新後
             print("Error per example : {}".format(total_error / num_words))
-            # Dは更新前
             print("Dict L2 norm : {}".format(np.linalg.norm(self.dict, ord=2)))
             print("Avg Atom L1 norm : {}\n".format(atom_l1_norm/num_words))
 

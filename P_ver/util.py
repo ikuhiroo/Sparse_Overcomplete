@@ -9,6 +9,8 @@ import codecs
 from memory_profiler import profile
 import gc
 
+
+# @profile
 class Data:
     def __init__(self):
         pass
@@ -16,7 +18,7 @@ class Data:
     """ファイルの中身を１行ずつ返すジェネレーター"""
     def file_generator(self, filename):
         cnt = 0
-        with open(filename, encoding="utf-8") as infile:
+        with open(filename, encoding="utf-8", errors='ignore') as infile:
             for line in infile:
                 cnt += 1
                 if cnt == 1:
@@ -34,13 +36,13 @@ class Data:
         for line in gen:
             line = line.strip()
             word = line.split()[0]
-            wordVectors[word] = np.zeros(len(line.split())-1, dtype=np.float32)  # (L,)
+            wordVectors[word] = np.zeros(len(line.split())-1, dtype=np.float16)  # (L,)
             for index, vecVal in enumerate(line.split()[1:]):
                 wordVectors[word][index] = float(vecVal)
             del index, vecVal
             """normalize"""
             # wordVectors[word] /= [math.sqrt((wordVectors[word]**2).sum() + 1e-6)]
-            wordVectors[word] = np.array([wordVectors[word]], dtype=np.float32)  # (1, L)
+            wordVectors[word] = np.array([wordVectors[word]], dtype=np.float16)  # (1, L)
         print('wordVecsのread完了')
         return wordVectors
 
@@ -62,13 +64,13 @@ class Data:
     #         else:
     #             line = line.strip()
     #             word = line.split()[0]
-    #             wordVectors[word] = np.zeros(len(line.split())-1, dtype=np.float32)  # (L,)
+    #             wordVectors[word] = np.zeros(len(line.split())-1, dtype=np.float16)  # (L,)
     #             for index, vecVal in enumerate(line.split()[1:]):
     #                 wordVectors[word][index] = float(vecVal)
     #             del index, vecVal
     #             """normalize"""
     #             # wordVectors[word] /= [math.sqrt((wordVectors[word]**2).sum() + 1e-6)]
-    #             wordVectors[word] = np.array([wordVectors[word]], dtype=np.float32) # (1, L)
+    #             wordVectors[word] = np.array([wordVectors[word]], dtype=np.float16) # (1, L)
     #         cnt += 1
     #     del line, cnt
     #     gc.collect()

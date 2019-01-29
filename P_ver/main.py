@@ -1,4 +1,3 @@
-"""modelA"""
 import argparse
 import sys
 import numpy as np
@@ -11,26 +10,25 @@ from hyperparameter import numIter, l1_reg, l2_reg, factor, rate
 from memory_profiler import profile
 import gc
 
-@profile
+# @profile
 def main():
     # parser = argparse.ArgumentParser()
     # parser.add_argument("-i", "--input", type=str, default=None, help="Input word vecs")
     # # parser.add_argument("-o", "--output", type=str, help="Output word vecs")
     # args = parser.parse_args()
 
-    """init_vecの読み込み"""
+    """init_vec（vectors.modelなど）の読み込み"""
     data = util.Data()
     # wordVecsのread
     # wordVecs = data.ReadVecsFromFile('../sample/sample_vecs.txt')
     # wordVecs = data.ReadVecsFromFile('../word2vec/vectors.model')
     wordVecs = data.ReadVecsFromFile('../word2vec/vectors_300.model')
 
-    # word2vecのkey数
-    vocab_len = np.array(len(list(wordVecs.keys())), dtype=np.int32)
-    # print("wordVecs vocab_len : {}".format(vocab_len))
-    # word2vecのvalueの次元数out
+    # word2vecの単語数：vocab_len
+    vocab_len = np.array(len(list(wordVecs.keys())), dtype=np.int16)
+    # word2vecのvalueの次元数：vec_len
     for key in wordVecs.keys():
-        vec_len = np.array(len(wordVecs[key][0]), dtype=np.int32)
+        vec_len = np.array(len(wordVecs[key][0]), dtype=np.int16)
         break
 
     print("\n----------------")
@@ -51,6 +49,7 @@ def main():
     -> 大体，7.56MB増えるはず
     """    
     trainer = model.Model(wordVecs, vocab_len, vec_len)
+
     """train"""
     trainer.Sparse_Overfitting(wordVecs, vocab_len, vec_len)
     del wordVecs, vocab_len, vec_len
