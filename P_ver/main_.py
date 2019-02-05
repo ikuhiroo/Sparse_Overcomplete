@@ -74,7 +74,7 @@ from sklearn.externals import joblib
 合計 : 4979.0154[MB]
 """
 
-@profile
+# @profile
 def main():
     # init_vec（vectors.modelなど）の読み込み
     data = util.Data()
@@ -96,12 +96,12 @@ def main():
     atom = {}
     # 3.6MB (32bit, factor=10)増える
     for key in wordVecs.keys():
-        atom[key] = 0.6*(1/np.sqrt(factor*vec_len, dtype=np.float32)) * \
-            np.random.randn(1, factor*vec_len).astype(np.float32)
+        atom[key] = 0.6*(1/np.sqrt(factor*vec_len, dtype=np.float16)) * \
+            np.random.randn(1, factor*vec_len).astype(np.float16)
 
     # 3.6MB (32bit, factor=10)増える
-    Dict = (0.6*(1/np.sqrt(vec_len + factor*vec_len)) *
-                 np.random.randn(vec_len, factor*vec_len)).astype(np.float32)
+    Dict = (0.6*(1/np.sqrt(vec_len + factor*vec_len).astype(np.float16)) *
+            np.random.randn(vec_len, factor*vec_len).astype(np.float16))
     
     # Optimizerの初期化
     #  L*V*1 + L*K*3 + V*K*2
@@ -109,13 +109,14 @@ def main():
     Optimizer = param.Param(atom, Dict, vocab_len, vec_len)
     for time in range(1, numIter):
         num_words = 0  # 更新単語数
-        total_error = np.array(0, dtype=np.float32)  # 総ロス
-        atom_l1_norm = np.array(0, dtype=np.float32)  # Aに関するノルム値
+        # total_error = np.array(0, dtype=np.float16)  # 総ロス
+        # atom_l1_norm = np.array(0, dtype=np.float16)  # Aに関するノルム値
         # adaptiveな手続き, A[key]を対象
         for key in wordVecs.keys():
             """error算出"""
             # predict i-th word, DとAの内積を計算, (1, L)
-            pred_vec = np.dot(atom[key], Dict.T).astype(np.float32)
+            pred_vec = np.dot(atom[key].astype(np.float64), Dict.astype(
+                np.float64).T).astype(np.float16)
             # true_vec - pred_vecの復元誤差, (1, L)
             diff_vec = wordVecs[key] - pred_vec
 
@@ -128,17 +129,22 @@ def main():
             Optimizer.UpdateParams(time, key, diff_vec, vec_len)
 
             num_words += 1  # 更新単語数
-            error = np.sum(np.square(diff_vec), dtype=np.float32)
-            total_error += error
-            atom_l1_norm += np.sum(Optimizer.atom[key][0])
-        
-        print("Error per example : {}".format(total_error / num_words))
+            # diff_vec = np.clip(diff_vec, -1, 1)
+            # print("Error per example : {}".format(
+            #     np.sum(np.square(diff_vec), dtype=np.float64)))
+            # print(Optimizer.atom[key][0])
+            # print(Optimizer.Dict) # Dictに問題なし
+
+            # total_error += error
+            # atom_l1_norm += np.sum(Optimizer.atom[key][0])
+        # total_error = np.clip(total_error, -1, 1)
         # print("Dict L2 norm : {}".format(np.linalg.norm(Dict, ord=2)))
-        print("Avg Atom L1 norm : {}\n".format(atom_l1_norm/num_words))
+        # print("Avg Atom L1 norm : {}\n".format(atom_l1_norm/num_words))
 
         # 保存先，オブジェクトで保存したらファイル保存をする必要がない
-        joblib.dump(Optimizer.atom, './newvec.pkl')
-        joblib.dump(Optimizer.Dict, './_dict.pkl')
+        print(Optimizer.atom['放送'])
+        joblib.dump(Optimizer.atom, "./newvec_{}.pkl".format(time))
+        joblib.dump(Optimizer.Dict, "./_dict_{}.pkl".format(time))
         # output = '../sample_Sparse/newvec_{}.model'.format(time)
         # """save（sparse）A and D"""
         # data.WriteVectorsToFile(Optimizer.atom, str(output))
