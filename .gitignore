@@ -1,0 +1,14 @@
+result
+trained_model
+log
+memory*
+glove
+.vscode
+sample*
+word2vec*
+eigen*
+makefile
+*.txt
+*.txt_dict
+*.o
+
