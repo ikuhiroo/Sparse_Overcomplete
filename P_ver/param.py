@@ -9,6 +9,7 @@ from hyperparameter import numIter, l1_reg, l2_reg, factor, rate
 from memory_profiler import profile
 import gc
 
+
 class Param:
     """
     以下はクラス変数（全ての単語で共通）である．
@@ -18,6 +19,7 @@ class Param:
     ・_del_grad_A
     ・_grad_sum_A
     """
+
     def __init__(self, Atom, Dict, vocab_len, vec_len):
         self.atom = Atom  # (L, V)
         self.Dict = Dict  # (L, K)
@@ -25,15 +27,19 @@ class Param:
         # self.vec_len = vec_len   # L
 
         # 全単語で共通
-        self._del_grad_D = np.zeros((vec_len, vec_len*factor), dtype=np.float16)  # (L, K)
-        self._grad_sum_D = np.zeros((vec_len, vec_len*factor), dtype=np.float16)  # (L, K)
+        self._del_grad_D = np.zeros(
+            (vec_len, vec_len * factor), dtype=np.float16
+        )  # (L, K)
+        self._grad_sum_D = np.zeros(
+            (vec_len, vec_len * factor), dtype=np.float16
+        )  # (L, K)
 
         # 単語ごと作成
         self._del_grad_A = {}
         self._grad_sum_A = {}
         for key in self.atom.keys():
-            self._del_grad_A[key] = np.zeros(vec_len*factor, dtype=np.float16)  # (K,)
-            self._grad_sum_A[key] = np.zeros(vec_len*factor, dtype=np.float16)  # (K,)
+            self._del_grad_A[key] = np.zeros(vec_len * factor, dtype=np.float16)  # (K,)
+            self._grad_sum_A[key] = np.zeros(vec_len * factor, dtype=np.float16)  # (K,)
 
     # AdagradUpdate : Aを固定してDを更新
     def AdagradUpdate(self, grads):
@@ -52,8 +58,9 @@ class Param:
         # cwiseQuotient : (L, K)
         # cwiseQuotient = grads / (np.sqrt(self._del_grad_D.astype(np.float64) + 1e-7))
         # dict : (L, K)
-        self.Dict -= rate * \
-            (grads / (np.sqrt(self._del_grad_D.astype(np.float64) + 1e-7))).astype(np.float16)
+        self.Dict -= rate * (
+            grads / (np.sqrt(self._del_grad_D.astype(np.float64) + 1e-7))
+        ).astype(np.float16)
         # print(self.Dict)
 
     # AdagradUpdateWithL1Reg : Dを固定してAを更新
@@ -68,14 +75,21 @@ class Param:
         self._grad_sum_A[key] += grads[0].astype(np.float16)
         # print(self._grad_sum_A[key])
         # A[key]の更新
-        for j in range(factor*vec_len):  # K
+        for j in range(factor * vec_len):  # K
             """RuntimeWarning: invalid value encountered in double_scalars"""
             # A[key][j]の更新
-            if abs(self._grad_sum_A[key][j].astype(np.float64)) - l1_reg*time <= 0:
+            if abs(self._grad_sum_A[key][j].astype(np.float64)) - l1_reg * time <= 0:
                 self.atom[key][0][j] = 0
             else:
-                self.atom[key][0][j] = (- (np.sign(self._grad_sum_A[key][j]) * rate * abs(self._grad_sum_A[key][j].astype(
-                    np.float64)) - l1_reg*time) / (np.sqrt(self._del_grad_A[key][j].astype(np.float64)))).astype(np.float16)
+                self.atom[key][0][j] = (
+                    -(
+                        np.sign(self._grad_sum_A[key][j])
+                        * rate
+                        * abs(self._grad_sum_A[key][j].astype(np.float64))
+                        - l1_reg * time
+                    )
+                    / (np.sqrt(self._del_grad_A[key][j].astype(np.float64)))
+                ).astype(np.float16)
 
     # AdagradUpdateWithL1RegNonNeg
     def AdagradUpdateWithL1RegNonNeg(self, time, key, grads, vec_len):
@@ -85,9 +99,11 @@ class Param:
         # _grad_sum_A : (K,)
         self._grad_sum_A[key] += grads[0].astype(np.float16)
         for j in range(factor * vec_len):  # K
-            diff = abs(self._grad_sum_A[key][j]) - l1_reg*time
-            gamma = - ((np.sign(self._grad_sum_A[key][j], dtype=np.float16) * rate *
-                        diff) / (np.sqrt(self._del_grad_A[key][j], dtype=np.float16)))
+            diff = abs(self._grad_sum_A[key][j]) - l1_reg * time
+            gamma = -(
+                (np.sign(self._grad_sum_A[key][j], dtype=np.float16) * rate * diff)
+                / (np.sqrt(self._del_grad_A[key][j], dtype=np.float16))
+            )
             gamma = gamma.astype(np.float16)
             # Aの更新
             if diff <= 0:
@@ -97,8 +113,9 @@ class Param:
                     self.atom[key][0][j] = 0
                 else:
                     self.atom[key][0][j] = gamma
-    
+
     """パラメータの更新"""
+
     def UpdateParams(self, time, key, diff_vec, vec_len):
         """Dの更新 (A[key]は固定)
         # diff_vec : (1, L)
@@ -108,8 +125,16 @@ class Param:
         """
         # AdagradUpdate
         self.AdagradUpdate(
-            np.clip((-2)*np.dot(diff_vec.astype(np.float64).T, self.atom[key].astype(np.float64))
-            + 2*l2_reg*self.Dict.astype(np.float64), -1, 1))
+            np.clip(
+                (-2)
+                * np.dot(
+                    diff_vec.astype(np.float64).T, self.atom[key].astype(np.float64)
+                )
+                + 2 * l2_reg * self.Dict.astype(np.float64),
+                -1,
+                1,
+            )
+        )
 
         """A[key]の更新 (Dは固定)
         iter2の2つ目の単語のdiff_vecまでは同じ
@@ -120,11 +145,15 @@ class Param:
         """
         # AdagradUpdateWithL1Reg
         self.AdagradUpdateWithL1Reg(
-            time, 
-            key, 
-            np.clip((-2)*np.dot(diff_vec.astype(np.float64),
-                                self.Dict.astype(np.float64)), -1, 1),  # atom_elem_grads
-            vec_len
+            time,
+            key,
+            np.clip(
+                (-2)
+                * np.dot(diff_vec.astype(np.float64), self.Dict.astype(np.float64)),
+                -1,
+                1,
+            ),  # atom_elem_grads
+            vec_len,
         )
         # Binarizing Transformation
         # self.AdagradUpdateWithL1RegNonNeg(time, key, atom_elem_grads)

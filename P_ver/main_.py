@@ -2,6 +2,8 @@ import math
 import re
 import sys
 import numpy as np
+import pandas as pd
+
 np.random.seed(100)
 import argparse
 from memory_profiler import profile
@@ -12,23 +14,7 @@ import param
 from hyperparameter import numIter, l1_reg, l2_reg, factor, rate
 
 from sklearn.externals import joblib
-# from zpkobj import ZpkObj  # zpkobjというファイル名にした場合
-# import pickle
-# import bz2
-# PROTOCOL = pickle.HIGHEST_PROTOCOL
-# class ZpkObj:
-#     """
-#     obj = ZpkObj(obj)  # 圧縮するとき
-#     obj = obj.load()  # 解凍するとき
-
-#     zobj1 = ZpkObj(obj1)
-#     del obj1 #違う名前に代入するなら必須
-#     """
-#     def __init__(self, obj):
-#         self.zpk_object = bz2.compress(pickle.dumps(obj, PROTOCOL), 9)
-
-#     def load(self):
-#         return pickle.loads(bz2.decompress(self.zpk_object))
+import logging
 
 """init_vec（vectors.modelなど）の読み込み
 # wordVecs : (V, L)
@@ -78,7 +64,8 @@ from sklearn.externals import joblib
 def main():
     # init_vec（vectors.modelなど）の読み込み
     data = util.Data()
-    wordVecs = data.ReadVecsFromFile('../word2vec/vectors.model')
+    wordVecs = data.ReadVecsFromFile("../word2vec/vectors.model")
+
     vocab_len = np.array(len(list(wordVecs.keys())), dtype=np.int16)
     for key in wordVecs.keys():
         vec_len = np.array(len(wordVecs[key][0]), dtype=np.int16)
@@ -96,13 +83,25 @@ def main():
     atom = {}
     # 3.6MB (32bit, factor=10)増える
     for key in wordVecs.keys():
-        atom[key] = 0.6*(1/np.sqrt(factor*vec_len, dtype=np.float16)) * \
-            np.random.randn(1, factor*vec_len).astype(np.float16)
+        atom[key] = (
+            0.6
+            * (1 / np.sqrt(factor * vec_len, dtype=np.float16))
+            * np.random.randn(1, factor * vec_len).astype(np.float16)
+        )
 
     # 3.6MB (32bit, factor=10)増える
-    Dict = (0.6*(1/np.sqrt(vec_len + factor*vec_len).astype(np.float16)) *
-            np.random.randn(vec_len, factor*vec_len).astype(np.float16))
-    
+    Dict = (
+        0.6
+        * (1 / np.sqrt(vec_len + factor * vec_len).astype(np.float16))
+        * np.random.randn(vec_len, factor * vec_len).astype(np.float16)
+    )
+
+    # atom = joblib.load(
+    #     '/Users/1-10robotics/Desktop/Sparse_Overcomplete/P_ver/trained_model/numIter = 6_l1_reg = 0.5_l2_reg = 1e-5_factor = 3_rate = 0.05_learning rate/newvec_5.pkl')
+
+    # Dict = joblib.load(
+    #     '/Users/1-10robotics/Desktop/Sparse_Overcomplete/P_ver/trained_model/numIter = 6_l1_reg = 0.5_l2_reg = 1e-5_factor = 3_rate = 0.05_learning rate/_dict_5.pkl')
+
     # Optimizerの初期化
     #  L*V*1 + L*K*3 + V*K*2
     # 90000 + 2700000 + 1800000 = 18.36MB
@@ -115,8 +114,9 @@ def main():
         for key in wordVecs.keys():
             """error算出"""
             # predict i-th word, DとAの内積を計算, (1, L)
-            pred_vec = np.dot(atom[key].astype(np.float64), Dict.astype(
-                np.float64).T).astype(np.float16)
+            pred_vec = np.dot(
+                atom[key].astype(np.float64), Dict.astype(np.float64).T
+            ).astype(np.float16)
             # true_vec - pred_vecの復元誤差, (1, L)
             diff_vec = wordVecs[key] - pred_vec
 
@@ -142,9 +142,12 @@ def main():
         # print("Avg Atom L1 norm : {}\n".format(atom_l1_norm/num_words))
 
         # 保存先，オブジェクトで保存したらファイル保存をする必要がない
-        print(Optimizer.atom['放送'])
         joblib.dump(Optimizer.atom, "./newvec_{}.pkl".format(time))
         joblib.dump(Optimizer.Dict, "./_dict_{}.pkl".format(time))
+        joblib.dump(Optimizer._del_grad_A, "./_del_grad_A{}.pkl".format(time))
+        joblib.dump(Optimizer._grad_sum_A, "./_grad_sum_A{}.pkl".format(time))
+        joblib.dump(Optimizer._del_grad_D, "./_del_grad_D{}.pkl".format(time))
+        joblib.dump(Optimizer._grad_sum_D, "./_grad_sum_D{}.pkl".format(time))
         # output = '../sample_Sparse/newvec_{}.model'.format(time)
         # """save（sparse）A and D"""
         # data.WriteVectorsToFile(Optimizer.atom, str(output))
@@ -155,5 +158,76 @@ def main():
         # data.WriteVectorsToFile_non(self.atom, str(output + '_non'))
         # # dict
         # data.WriteDictToFile(self.dict, str(output+'_dict'))
-if __name__ == '__main__':
+
+        try:
+            logger = logging.getLogger(__name__)
+            logger.setLevel(logging.INFO)
+
+            h = logging.FileHandler("./logtest_{}.log".format(time))
+            logger.addHandler(h)
+
+            logger.info(Optimizer.atom["放送"])
+
+            # 分析
+            newvec_word = list(Optimizer.atom.keys())
+            newvec_dimention = list(Optimizer.atom.values())
+
+            # dataframe作成
+            f_word = pd.DataFrame(newvec_word, columns=["word"])
+
+            # limit次元まで集計
+            var_per_dimention = {}
+            limit_num = 100
+            for v in range(len(newvec_dimention)):
+                for j in range(len(newvec_dimention[v][0])):
+                    if j < limit_num:
+                        try:
+                            var_per_dimention[j].append(newvec_dimention[v][0][j])
+                        except:
+                            var_per_dimention[j] = [newvec_dimention[v][0][j]]
+                    else:
+                        break
+
+            # sparse rate > 90を求める
+            memo = []
+            for i in range(len(list(var_per_dimention.values()))):
+                x = list(var_per_dimention.values())[i]
+                if (x.count(0) / len(x)) * 100 > 90 and (
+                    x.count(0) / len(x)
+                ) * 100 < 95:
+                    memo.append(i)
+            logger.info("len(memo): {}".format(len(memo)))
+            logger.info("memo: {}".format(memo))
+
+            # 特定の次元の平均を求める
+            for d in memo:
+                # i番目の次元のベクトルに注目
+                x = list(var_per_dimention.values())[d]
+                # 平均を求める
+                mean_x = np.average(x)
+                logger.info("d: {}, mean: {}\n".format(d, mean_x))
+
+                # 求めた平均から各単語の分散を求める
+                var_x = [math.sqrt((mean_x - x[i]) ** 2) for i in range(len(x))]
+
+                # 分散の大きさ順にソートし，indexを返す
+                index_x_sorted = sorted(
+                    range(len(var_x)), key=lambda k: var_x[k], reverse=True
+                )
+
+                logger.info(
+                    "d: {}, sorted_value: {}\n".format(d, sorted(var_x, reverse=True))
+                )
+
+                # indexの上位5個
+                target = index_x_sorted[:10]
+                logger.info("d: {}, target_index: {}\n".format(d, target))
+
+                # indexの上位5個の単語を返す
+                logger.info("d: {}, target_word: {}\n".format(d, f_word.iloc[target]))
+        except:
+            logger.info("error")
+
+
+if __name__ == "__main__":
     main()

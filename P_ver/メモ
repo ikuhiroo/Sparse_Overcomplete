@@ -1,0 +1,69 @@
+Filename: main_.py
+
+Line #    Mem usage    Increment   Line Contents
+================================================
+    77     52.9 MiB     52.9 MiB   @profile
+    78                             def main():
+    79                                 # init_vec（vectors.modelなど）の読み込み
+    80     52.9 MiB      0.0 MiB       data = util.Data()
+    81    720.5 MiB    667.6 MiB       wordVecs = data.ReadVecsFromFile('../word2vec/vectors.model')
+    82    720.5 MiB      0.0 MiB       vocab_len = np.array(len(list(wordVecs.keys())), dtype=np.int16)
+    83    720.5 MiB      0.0 MiB       for key in wordVecs.keys():
+    84    720.5 MiB      0.0 MiB           vec_len = np.array(len(wordVecs[key][0]), dtype=np.int16)
+    85    720.5 MiB      0.0 MiB           break
+    86
+    87    720.5 MiB      0.0 MiB       print("\n----------------")
+    88    720.5 MiB      0.0 MiB       print("word_num: {}".format(len(wordVecs.keys())))
+    89    720.5 MiB      0.0 MiB       print("Input vector length: {}".format(vec_len))
+    90    720.5 MiB      0.0 MiB       print("Output vector length:: {}".format(vec_len * factor))
+    91    720.5 MiB      0.0 MiB       print("L2 Reg(Dict): {}".format(l2_reg))
+    92    720.5 MiB      0.0 MiB       print("L1 Reg(Atom): {}".format(l1_reg))
+    93    720.5 MiB      0.0 MiB       print("----------------\n")
+    94
+    95                                 # AとDの初期化
+    96    720.5 MiB      0.0 MiB       atom = {}
+    97                                 # 3.6MB (32bit, factor=10)増える
+    98   2325.5 MiB      0.0 MiB       for key in wordVecs.keys():
+    99   2325.5 MiB     58.0 MiB           atom[key] = 0.6*(1/np.sqrt(factor*vec_len, dtype=np.float16)) * \
+   100   2325.5 MiB   1547.0 MiB               np.random.randn(1, factor*vec_len).astype(np.float16)
+   101
+   102                                 # 3.6MB (32bit, factor=10)増える
+   103   2325.5 MiB      0.0 MiB       Dict = (0.6*(1/np.sqrt(vec_len + factor*vec_len)) *
+   104   2328.3 MiB      2.8 MiB                    np.random.randn(vec_len, factor*vec_len)).astype(np.float16)
+   105
+   106                                 # Optimizerの初期化
+   107                                 #  L*V*1 + L*K*3 + V*K*2
+   108                                 # 90000 + 2700000 + 1800000 = 18.36MB
+   109   5318.1 MiB   2989.8 MiB       Optimizer = param.Param(atom, Dict, vocab_len, vec_len)
+   110   5318.1 MiB      0.0 MiB       for time in range(1, numIter):
+   111   5318.1 MiB      0.0 MiB           num_words = 0  # 更新単語数
+   112   5318.1 MiB      0.0 MiB           total_error = np.array(0, dtype=np.float16)  # 総ロス
+   113   5318.1 MiB      0.0 MiB           atom_l1_norm = np.array(0, dtype=np.float16)  # Aに関するノルム値
+   114                                     # adaptiveな手続き, A[key]を対象
+   115   5318.1 MiB -1716925556.6 MiB           for key in wordVecs.keys():
+   116                                         """error算出"""
+   117                                         # predict i-th word, DとAの内積を計算, (1, L)
+   118   5318.1 MiB -1718132631.1 MiB               pred_vec = np.dot(atom[key], Dict.T).astype(np.float16)
+   119                                         # true_vec - pred_vecの復元誤差, (1, L)
+   120   5318.1 MiB -1718141137.4 MiB               diff_vec = wordVecs[key] - pred_vec
+   121
+   122                                         """AとDの更新
+   123                                         全単語共通でtimeごとに値を保持している
+   124                                         -> 単語ごとに値を保持するべき
+   125
+   126                                         atom[key].UpdateParams(time, diff_vec)
+   127                                         """
+   128   5316.5 MiB -1718145025.4 MiB               Optimizer.UpdateParams(time, key, diff_vec, vec_len)
+   129
+   130   5316.5 MiB -1716925563.4 MiB               num_words += 1  # 更新単語数
+   131   5316.5 MiB -1716925575.8 MiB               error = np.sum(np.square(diff_vec), dtype=np.float16)
+   132   5316.5 MiB -1716925581.6 MiB               total_error += error
+   133   5316.5 MiB -1716925595.3 MiB               atom_l1_norm += np.sum(Optimizer.atom[key][0])
+   134
+   135   2568.9 MiB  -2749.2 MiB           print("Error per example : {}".format(total_error / num_words))
+   136                                     # print("Dict L2 norm : {}".format(np.linalg.norm(Dict, ord=2)))
+   137   2568.9 MiB      0.0 MiB           print("Avg Atom L1 norm : {}\n".format(atom_l1_norm/num_words))
+   138
+   139                                     # 保存先，オブジェクトで保存したらファイル保存をする必要がない
+   140   1786.0 MiB   -782.9 MiB           joblib.dump(Optimizer.atom, './newvec.pkl')
+   141   1787.1 MiB      1.1 MiB           joblib.dump(Optimizer.Dict, './_dict.pkl')
