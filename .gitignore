@@ -11,4 +11,5 @@ makefile
 *.txt
 *.txt_dict
 *.o
-
+model
+*.model

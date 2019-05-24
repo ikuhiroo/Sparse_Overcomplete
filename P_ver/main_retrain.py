@@ -18,50 +18,6 @@ import logging
 
 from tqdm import tqdm
 
-"""init_vec（vectors.modelなど）の読み込み
-# wordVecs : (V, L)
-# メモリ計算式：単語数 * 初期vecの次元数 * 0.000004[MB]
-= 754069 * 300 * 0.000002 = 452.4414[MB]
-"""
-"""AとDの初期化
-# A : (V, K), A[key] : (K,)
-# 初期値の係数 : 0.6*(1/np.sqrt(vec_len*factor)
-# メモリ計算式：単語数 * SOVのvecの次元数 * 0.000004[MB]
-= 754069 * 900 * 0.000002 = 1357.3242[MB]
-
-# D : (L, K)
-# 初期値の係数 : 0.6*(1/np.sqrt(vec_len+vec_len*factor))
-# メモリ計算式：初期vecの次元数 * SOVのvecの次元数 * 0.000004[MB]
-= 300 * 900 * 0.000002 = 0.54[MB]
-"""
-"""Optimizerの初期化
-# self.atom = Atom  # (L, V)
-# メモリ計算式：初期vecの次元数 * 単語数 * 0.000004[MB]
-= 754069 * 300 * 0.000002 = 452.4414[MB]
-
-# self.dict = Dict  # (L, K)
-# メモリ計算式：初期vecの次元数 * SOVのvecの次元数 * 0.000004[MB]
-= 300 * 900 * 0.000002 = 0.54[MB]
-
-# self._del_grad_D  # (L, K)
-# メモリ計算式：初期vecの次元数 * SOVのvecの次元数 * 0.000004[MB]
-= 300 * 900 * 0.000002 = 0.54[MB]
-
-# self._grad_sum_D  # (L, K)
-# メモリ計算式：初期vecの次元数 * SOVのvecの次元数 * 0.000004[MB]
-= 300 * 900 * 0.000002 = 0.54[MB]
-
-# self._del_grad_A[key] # (K,)
-# メモリ計算式：単語数 * SOVのvecの次元数 * 0.000004[MB]
-= 754069 * 900 * 0.000002 = 1357.3242[MB]
-
-# self._grad_sum_A[key] # (K,)
-# メモリ計算式：単語数 * SOVのvecの次元数 * 0.000004[MB]
-= 754069 * 900 * 0.000002 = 1357.3242[MB]
-
-合計 : 4979.0154[MB]
-"""
-
 # @profile
 def main():
     # init_vec（vectors.modelなど）の読み込み
@@ -82,24 +38,16 @@ def main():
     print("L1 Reg(Atom): {}".format(l1_reg))
 
     # AとDの初期化
-    atom = {}
-    # 3.6MB (32bit, factor=10)増える
-    for key in wordVecs.keys():
-        atom[key] = (
-            0.6
-            * (1 / np.sqrt(factor * vec_len, dtype=np.float16))
-            * np.random.randn(1, factor * vec_len).astype(np.float16)
-        )
-
-    # 3.6MB (32bit, factor=10)増える
-    Dict = (
-        0.6
-        * (1 / np.sqrt(vec_len + factor * vec_len).astype(np.float16))
-        * np.random.randn(vec_len, factor * vec_len).astype(np.float16)
-    )
+    atom = joblib.load("/Users/1-10robotics/Desktop/Sparse_Overcomplete/P_ver/trained_model/newvec_9.pkl")
+    Dict = joblib.load("/Users/1-10robotics/Desktop/Sparse_Overcomplete/P_ver/trained_model/_dict_9.pkl")
 
     # Optimizerの初期化
     Optimizer = param.Param(atom, Dict, vocab_len, vec_len)
+    Optimizer._del_grad_A = joblib.load("/Users/1-10robotics/Desktop/Sparse_Overcomplete/P_ver/trained_model/_del_grad_A9.pkl")
+    Optimizer._grad_sum_A = joblib.load("/Users/1-10robotics/Desktop/Sparse_Overcomplete/P_ver/trained_model/_grad_sum_A9.pkl")
+    Optimizer._del_grad_D = joblib.load("/Users/1-10robotics/Desktop/Sparse_Overcomplete/P_ver/trained_model/_del_grad_D9.pkl")
+    Optimizer._grad_sum_D = joblib.load("/Users/1-10robotics/Desktop/Sparse_Overcomplete/P_ver/trained_model/_grad_sum_D9.pkl")
+
 
     for time in range(1, numIter):
         num_words = 0  # 更新単語数

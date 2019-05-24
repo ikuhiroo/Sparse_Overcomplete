@@ -9,6 +9,8 @@ from hyperparameter import numIter, l1_reg, l2_reg, factor, rate
 from memory_profiler import profile
 import gc
 
+from tqdm import tqdm
+
 
 class Param:
     """
@@ -23,8 +25,6 @@ class Param:
     def __init__(self, Atom, Dict, vocab_len, vec_len):
         self.atom = Atom  # (L, V)
         self.Dict = Dict  # (L, K)
-        # self.vocab_len = vocab_len  # V
-        # self.vec_len = vec_len   # L
 
         # 全単語で共通
         self._del_grad_D = np.zeros(
