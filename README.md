@@ -1,15 +1,15 @@
-#Sparse Coding
+# Sparse Coding
 Manaal Faruqui, manaalfar@gmail.com
 
 This tool implements sparse coding for converting dense word vector representations to highly sparse vectors. The implementation can be run on multiple cores in parallel with asynchronous updates. The sparsity is introduced in the word vectors using L1 regularization. For technical details please refer to Faruqui et al (2015).
 
-###Data you need
+### Data you need
 
 Word Vector File. Each vector file should have one word vector per line as follows (space delimited):-
 
 ```the -1.0 2.4 -0.3 ...```
 
-###Compile
+### Compile
 
 You need to download the latest Eigen stable release from here: http://eigen.tuxfamily.org/index.php?title=Main_Page
 
@@ -22,7 +22,7 @@ For sparse coding: ```make```
 
 For non-negative sparse coding: ```make nonneg```
 
-###Running the executable
+### Running the executable
 
 For sparse coding: ```sparse.o```
 
@@ -34,7 +34,7 @@ Example: ```./sparse.o sample_vecs.txt 10 0.5 1e-5 1 out_vecs.txt```
 
 This example would expand the vectors in sample_vecs.txt to 10 times their original length.
 
-###Reference
+### Reference
 
 ```
 @InProceedings{faruqui:2015:sparse,
